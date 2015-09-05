@@ -274,6 +274,82 @@ def unif_normal(Q_ref, M, std, num_d_emulate=1E6):
     # solving the model EVER! This can be done "offline" so to speak.
     return (rho_D_M, d_distr_samples, d_Tree)
 
+def regular_normal(Q_ref, M, std, num_d_emulate=1E6):
+    r"""
+    Creates a simple function approximation of :math:`\rho_{\mathcal{D},M}`
+    where :math:`\rho_{\mathcal{D},M}` is a multivariate normal probability
+    density centered at Q_ref with standard deviation std using M bins sampled
+    from a uniform distribution with a size 4 standard deviations in each
+    direction.
+
+    :param int M: Defines number M samples in D used to define
+        :math:`\rho_{\mathcal{D},M}` The choice of M is something of an "art" -
+        play around with it and you can get reasonable results with a
+        relatively small number here like 50.
+    :param int num_d_emulate: Number of samples used to emulate using an MC
+        assumption 
+    :param Q_ref: :math:`Q(\lambda_{reference})`
+    :type Q_ref: :class:`~numpy.ndarray` of size (mdim,)
+    :param std: The standard deviation of each QoI
+    :type std: :class:`~numpy.ndarray` of size (mdim,)
+    :rtype: tuple
+    :returns: (rho_D_M, d_distr_samples, d_Tree) where ``rho_D_M`` is (M,) and
+    ``d_distr_samples`` are (M, mdim) :class:`~numpy.ndarray` and `d_Tree` is
+    the :class:`~scipy.spatial.KDTree` for d_distr_samples
+
+    """
+    r'''Create M smaples defining M bins in D used to define
+    :math:`\rho_{\mathcal{D},M}` rho_D is assumed to be a multi-variate normal
+    distribution with mean Q_ref and standard deviation std.'''
+   
+    if (std.size == 1) & (Q_ref.size > 1):
+      std = std * np.ones(Q_ref.size)
+    
+    bin_range = 4.0*std
+    d_distr_samples_list = list()
+    #if comm.rank == 0:
+    for dim in xrange(len(Q_ref)):
+      d_distr_samples_list.append( np.linspace(Q_ref[dim] - bin_range[dim],
+	Q_ref[dim] + bin_range[dim], M) )	
+    d_distr_samples = util.meshgrid_ndim(d_distr_samples_list)
+    
+    comm.Bcast([d_distr_samples, MPI.DOUBLE], root=0)
+    
+    r'''Now compute probabilities for :math:`\rho_{\mathcal{D},M}` by sampling
+    from rho_D First generate samples of rho_D - I sometimes call this
+    emulation''' 
+    num_d_emulate = int(num_d_emulate/comm.size)+1
+    d_distr_emulate = np.zeros((num_d_emulate, len(Q_ref)))
+    for i in range(len(Q_ref)):
+        d_distr_emulate[:, i] = np.random.normal(Q_ref[i], std[i], 
+                num_d_emulate) 
+
+    # Now bin samples of rho_D in the M bins of D to compute rho_{D, M}
+    if len(d_distr_samples.shape) == 1:
+        d_distr_samples = np.expand_dims(d_distr_samples, axis=1)
+
+    d_Tree = spatial.KDTree(d_distr_samples)
+    (_, k) = d_Tree.query(d_distr_emulate)
+    count_neighbors = np.zeros((M**len(Q_ref),), dtype=np.int)
+    #volumes = np.zeros((M,))
+    for i in range(M**len(Q_ref)):
+        Itemp = np.equal(k, i)
+        count_neighbors[i] = np.sum(Itemp)
+        
+    r'''Now define probability of the d_distr_samples This together with
+    d_distr_samples defines :math:`\rho_{\mathcal{D},M}`'''
+    ccount_neighbors = np.copy(count_neighbors)
+    comm.Allreduce([count_neighbors, MPI.INT], [ccount_neighbors, MPI.INT],
+            op=MPI.SUM) 
+    count_neighbors = ccount_neighbors
+    rho_D_M = count_neighbors.astype(np.float64)/float(comm.size*num_d_emulate)
+    
+    # NOTE: The computation of q_distr_prob, q_distr_emulate, q_distr_samples
+    # above, while informed by the sampling of the map Q, do not require
+    # solving the model EVER! This can be done "offline" so to speak.
+    return (rho_D_M, d_distr_samples, d_Tree)
+
+
 def uniform_hyperrectangle_user(data, domain, center_pts_per_edge=1):
     r"""
     Creates a simple funciton appoximation of :math:`\rho_{\mathcal{D},M}`

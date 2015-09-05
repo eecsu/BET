@@ -142,7 +142,8 @@ def plot_1D_marginal_probs(marginals, bins, lam_domain,
                 label1 = lambda_label[i]
             ax.set_xlabel(label1) 
             ax.set_ylabel(r'$\rho$')
-            fig.savefig(filename + "_1D_" + str(i) + fileExtension, transparent=True)
+            plt.backgroundcolor = 'w'
+            fig.savefig(filename + "_1D_" + str(i) + fileExtension, facecolor='w', transparent=True)
             if interactive:
                 plt.show()
             else:
@@ -203,9 +204,10 @@ def plot_2D_marginal_probs(marginals, bins, lam_domain,
             label_cbar = r'$\rho_{\lambda_{' + str(i+1) + '}, ' 
             label_cbar += r'\lambda_{' + str(j+1) + '}' + '}$ (Lesbesgue)'
             fig.colorbar(quadmesh, ax=ax, label=label_cbar)
+            plt.backgroundcolor = 'w'
             plt.axis([lam_domain[i][0], lam_domain[i][1], lam_domain[j][0],
                 lam_domain[j][1]]) 
-            fig.savefig(filename + "_2D_" + str(i) + "_" + str(j) + fileExtension, transparent=True)
+            fig.savefig(filename + "_2D_" + str(i) + "_" + str(j) + fileExtension, facecolor='w',  transparent=True)
             if interactive:
                 plt.show()
             else:
@@ -228,7 +230,7 @@ def plot_2D_marginal_probs(marginals, bins, lam_domain,
                 ax.set_zlabel(r'$P$')
                 plt.backgroundcolor = 'w'
                 fig.colorbar(surf, shrink=0.5, aspect=5, label=r'$P$')
-                fig.savefig(filename + "_surf_" + str(i) + "_" + str(j) + fileExtension, transparent=True)
+                fig.savefig(filename + "_surf_" + str(i) + "_" + str(j) + fileExtension, facecolor='w', transparent=True)
                 if interactive:
                     plt.show()
                 else:

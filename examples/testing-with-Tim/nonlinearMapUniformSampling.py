@@ -96,19 +96,19 @@ Some interesting pairs of QoI to compare are:
 (x1,y1)=(0.5,0.5) and (x2,y2)=(0.25,0.15)
 '''
 # Choose the QoI and define Q_ref
-QoI_num = 1
+QoI_num = 2
 
 if QoI_num == 1:
-  x1 = 0.75
-  y1 = 0.25
+  x1 = 0.5
+  y1 = 0.5
   x = np.array([x1])
   y = np.array([y1])
   Q_ref = np.array([QoI(x[0],y[0],ref_lam[0],ref_lam[1])])
 else:
-  x1 = 0.5
-  y1 = 0.15
-  x2 = 0.15
-  y2 = 0.25
+  x1 = 0.75
+  y1 = 0.75
+  x2 = 0.25
+  y2 = 0.5
   x = np.array([x1,x2])
   y = np.array([y1,y2])
   Q_ref = np.array([QoI(x[0],y[0],ref_lam[0],ref_lam[1]),
@@ -158,12 +158,15 @@ define a total of 9 contour events with 8 of them with zero probability.
 deterministic_discretize_D = True
 
 if deterministic_discretize_D == True:
-  (d_distr_prob, d_distr_samples, d_Tree) = simpleFunP.uniform_hyperrectangle(data=data,
-                                              Q_ref=Q_ref, bin_ratio=0.2, center_pts_per_edge = 1)
+#  (d_distr_prob, d_distr_samples, d_Tree) = simpleFunP.uniform_hyperrectangle(data=data,
+#                                              Q_ref=Q_ref, bin_ratio=0.2, center_pts_per_edge = 1)
+  (d_distr_prob, d_distr_samples, d_Tree) = simpleFunP.regular_normal(Q_ref=Q_ref, M=20, std=np.array([1.5]),
+								   num_d_emulate=1E5)
 else:
-  (d_distr_prob, d_distr_samples, d_Tree) = simpleFunP.unif_unif(data=data,
-                                              Q_ref=Q_ref, M=50, bin_ratio=0.2, num_d_emulate=1E5)
-
+#  (d_distr_prob, d_distr_samples, d_Tree) = simpleFunP.unif_unif(data=data,
+#                                              Q_ref=Q_ref, M=50, bin_ratio=0.2, num_d_emulate=1E5)
+  (d_distr_prob, d_distr_samples, d_Tree) = simpleFunP.unif_normal(Q_ref=Q_ref, M=50, std=np.array([0.5]),
+								   num_d_emulate=1E5)
 
 # create emulated points
 '''
@@ -218,16 +221,16 @@ marginals2D = plotP.smooth_marginals_2D(marginals2D,bins, sigma=0.5)
 
 # plot 2d marginals probs
 plotP.plot_2D_marginal_probs(marginals2D, bins, lam_domain, filename = "nonlinearMap",
-                             plot_surface=False)
+                             plot_surface=False, interactive=False)
 
-                             
+'''                            
 # calculate 1d marginal probs
 (bins, marginals1D) = plotP.calculate_1D_marginal_probs(P_samples = P, samples = lambda_emulate, lam_domain = lam_domain, nbins = [20, 20])
 # smooth 1d marginal probs (optional)
 marginals1D = plotP.smooth_marginals_1D(marginals1D, bins, sigma=0.5)
 # plot 1d marginal probs
 plotP.plot_1D_marginal_probs(marginals1D, bins, lam_domain, filename = "nonlinearMap")
-
+'''
 
 
 
