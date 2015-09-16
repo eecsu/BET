@@ -4,6 +4,14 @@ bet.postProcess package
 Submodules
 ----------
 
+bet.postProcess.dev_volume2d module
+-----------------------------------
+
+.. automodule:: bet.postProcess.dev_volume2d
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 bet.postProcess.plotDomains module
 ----------------------------------
 

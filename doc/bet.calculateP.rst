@@ -12,6 +12,30 @@ bet.calculateP.calculateP module
     :undoc-members:
     :show-inheritance:
 
+bet.calculateP.dev_simpleFunP module
+------------------------------------
+
+.. automodule:: bet.calculateP.dev_simpleFunP
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bet.calculateP.dev_voronoiHistogram module
+------------------------------------------
+
+.. automodule:: bet.calculateP.dev_voronoiHistogram
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bet.calculateP.indicatorFunctions module
+----------------------------------------
+
+.. automodule:: bet.calculateP.indicatorFunctions
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 bet.calculateP.simpleFunP module
 --------------------------------
 
