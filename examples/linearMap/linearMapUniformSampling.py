@@ -3,9 +3,29 @@
 # Copyright (C) 2014-2015 The BET Development Team
 
 """
-This example generates uniform samples on a 3D grid
-and evaluates a linear map to a 2d space. Probabilities
-in the paramter space are calculated using emulated points.
+This example solves a stochastic inverse problem for a 
+linear 3-to-2 map. We refer to the map as the QoI map, 
+or just a QoI. We refer to the range of the QoI map as 
+the data space. 
+
+The 3-D input space is discretized with i.i.d. uniform
+random samples. We refer to the input space as the 
+parameter space, and use parameter to refer to a particular 
+point (e.g., a particular random sample) in this space.
+
+A reference parameter is used to define a reference QoI datum
+and a uniform probability measure is defined on a small box
+centered at this datum.
+
+The measure on the data space is discretized either randomly
+or deterministically, and this discretized measure is then 
+inverted by BET to determine a probability measure on the 
+parameter space whose support contains the measurable sets 
+of probable parameters. 
+
+We use emulation to estimate the measures of sets defined by
+the random discretizations.
+
 1D and 2D marginals are calculated, smoothed, and plotted.
 """
 
@@ -15,72 +35,63 @@ import bet.postProcess as postProcess
 import bet.calculateP.simpleFunP as simpleFunP
 import bet.calculateP.calculateP as calculateP
 import bet.postProcess.plotP as plotP
-import bet.sample as sample
+import bet.sample as samp
 import bet.sampling.basicSampling as bsam
+from myModel import my_model
 
 # Initialize 3-dimensional input parameter sample set object
-input_samples = sample.sample_set(3)
+input_samples = samp.sample_set(3)
+
 # Set parameter domain
 input_samples.set_domain(np.repeat([[0.0, 1.0]], 3, axis=0))
 
-# Set reference parameter
-ref_lam = [0.5, 0.5, 0.5]
+# Define the sampler that will be used to create the discretization 
+# object, which is the fundamental object used by BET to compute
+# solutions to the stochastic inverse problem
+'''
+Suggested changes for user:   
+        
+Try num_samples = 1E3 and 1E4. What happens when num_samples = 1E2?
 
+Try using 'lhs' instead of 'random' in the sampler.
+'''
+sampler = bsam.sampler(my_model, num_samples=1E4)
+
+# Generate samples on the parameter space
+input_samples = sampler.random_sample_set('random', input_samples)
+# Estimate volumes of Voronoi cells associated with the parameter samples
 '''
 Suggested changes for user:
-    
-Try setting n0, n1, and n2 all to 10 and compare the results.
-    
-Also, we can do uniform random sampling by setting 
 
-  random_sample = True
-  
-If random_sample = True, consider defining
-   
-  n_samples = 1E3
-        
-Then also try n_samples = 1E4. What happens when n_samples = 1E2?
+Try different numbers of points to estimate the volume, and also
+try comparing to the standard Monte Carlo assumption that all the
+Voronoi cells have the same measure.
 '''
-random_sample = True
-
-if random_sample == False:
-  n0 = 30 # number of samples in lam0 direction
-  n1 = 30 # number of samples in lam1 direction
-  n2 = 30 # number of samples in lam2 direction
-  n_samples = n0*n1*n2
+MC_assumption = False
+if MC_assumption is False:
+    input_samples.estimate_volume_mc(n_mc_points=1E5)
 else:
-  n_samples = 2E3  
+    input_samples.estimate_volume_uniform()
 
-# Set the parameter samples
-if random_sample == False:
-    sampler = bsam.sampler(None, n_samples)
+# Now create the discretization object using the input samples
+###############################################################
+'''
+TO LINDLEY:: WE NEED TO HAVE THE SAMPLER ALSO JUST EVALUATE THE QOI AND RETURN AN
+OUTPUT DATA SET. THE SIMPLEFUNP REQUIRES THE OUTPUT DATA SET NOT THE DISCRETIZATION
 
-    # Define a regular grid for the samples, eventually update to use basicSampling
-    vec0=list(np.linspace(lam_domain[0][0], lam_domain[0][1], n0))
-    vec1 = list(np.linspace(lam_domain[1][0], lam_domain[1][1], n1))
-    vec2 = list(np.linspace(lam_domain[2][0], lam_domain[2][1], n2))
-    vecv0, vecv1, vecv2 = np.meshgrid(vec0, vec1, vec2, indexing='ij')
+OR
 
-    input_samples.set_values(
-                    np.vstack((vecv0.flat[:],
-                               vecv1.flat[:],
-                               vecv2.flat[:])).transpose()
-                            )
-else:
-    # Use uniform i.i.d. random samples from the domain
-    sampler = bsam.sampler(None, n_samples)
-    input_samples = sampler.random_sample_set('random', input_samples)
+TO STEVE:: WE SHOULD HAVE SIMPLEFUNP TAKE IN A DISCRETIZATION OBJECT AND USE THE
+OUTPUT DATA SET WITHIN IT TO CREATE THE PROBABILITY DATA SET.
+'''
+##################################################################
+my_discretization = sampler.create_random_discretization('random', input_samples,
+                                               savefile = '3to2_discretization.txt.gz')
 
-# QoI map
-Q_map = np.array([[0.506, 0.463],[0.253, 0.918], [0.085, 0.496]])
-
-# reference QoI
-Q_ref =  np.array([0.422, 0.9385])
-
-# calc data
-data= np.dot(samples,Q_map)
-np.savetxt('3to2_samples.txt.gz', samples)
-np.savetxt('3to2_data.txt.gz', data)
+# Define the reference parameter
+param_ref = np.array([0.5, 0.5, 0.5])
+# Compute the reference QoI
+Q_ref =  my_model(param_ref)
 
 '''
 Suggested changes for user:
@@ -104,49 +115,22 @@ this case) of points in D with the center point of the grid in the center of the
 the measure and the other points placed outside of the rectangle defining the support to define
 a total of 9 contour events with 8 of them having exactly zero probability.
 '''
-deterministic_discretize_D = False
-
-if deterministic_discretize_D == True:
-  (d_distr_prob, d_distr_samples, d_Tree) = simpleFunP.uniform_hyperrectangle(data=data,
-                                              Q_ref=Q_ref, bin_ratio=0.2, center_pts_per_edge = 1)
+deterministic_discretize_D = True
+if deterministic_discretize_D is True:
+    probability_set = simpleFunP.uniform_hyperrectangle(
+                                     data_set=my_discretization._output_sample_set,
+                                     Q_ref=Q_ref, bin_ratio=0.2,
+                                     center_pts_per_edge = 5)
 else:
-  (d_distr_prob, d_distr_samples, d_Tree) = simpleFunP.unif_unif(data=data,
-                                              Q_ref=Q_ref, M=50, bin_ratio=0.2, num_d_emulate=1E5)
+    probability_set = simpleFunP.unif_unif(data_set=my_discretization._output_sample_set,
+                                          Q_ref=Q_ref, M=50, bin_ratio=0.2,
+                                          num_d_emulate=1E5)
 
-'''
-Suggested changes for user:
-    
-If using a regular grid of sampling (if random_sample = False), we set
-    
-  lambda_emulate = samples
-  
-Otherwise, play around with num_l_emulate. A value of 1E2 will probably
-give poor results while results become fairly consistent with values 
-that are approximately 10x the number of samples.
-   
-Note that you can always use
-    
-  lambda_emulate = samples
-        
-and this simply will imply that a standard Monte Carlo assumption is
-being used, which in a measure-theoretic context implies that each 
-Voronoi cell is assumed to have the same measure. This type of 
-approximation is more reasonable for large n_samples due to the slow 
-convergence rate of Monte Carlo (it converges like 1/sqrt(n_samples)).
-'''
-if random_sample == False:
-  lambda_emulate = samples
-else:
-  lambda_emulate = calculateP.emulate_iid_lebesgue(lam_domain=lam_domain, num_l_emulate = 1E5)
-
+my_discretization._output_probability_set = probability_set
 
 # calculate probablities
-(P,  lambda_emulate, io_ptr, emulate_ptr) = calculateP.prob_emulated(samples=samples,
-                                                                     data=data,
-                                                                     rho_D_M=d_distr_prob,
-                                                                     d_distr_samples=d_distr_samples,
-                                                                     lambda_emulate=lambda_emulate,
-                                                                     d_Tree=d_Tree)
+calculateP.prob(my_discretization)
+
 # calculate 2d marginal probs
 '''
 Suggested changes for user:
@@ -162,20 +146,23 @@ and other similar methods), but we have not incorporated these into the code
 as lower-dimensional marginal plots have limited value in understanding the
 structure of a high dimensional non-parametric probability measure.
 '''
-(bins, marginals2D) = plotP.calculate_2D_marginal_probs(P_samples = P, samples = lambda_emulate, lam_domain = lam_domain, nbins = [10, 10, 10])
+(bins, marginals2D) = plotP.calculate_2D_marginal_probs(input_samples,
+                                                        nbins = 30)
 # smooth 2d marginals probs (optional)
-marginals2D = plotP.smooth_marginals_2D(marginals2D,bins, sigma=0.1)
+marginals2D = plotP.smooth_marginals_2D(marginals2D, bins, sigma=0.1)
 
 # plot 2d marginals probs
-plotP.plot_2D_marginal_probs(marginals2D, bins, lam_domain, filename = "linearMap",
-                             plot_surface=False)
+plotP.plot_2D_marginal_probs(marginals2D, bins, input_samples, filename = "linearMap",
+                             file_extension = ".eps", plot_surface=False)
 
 # calculate 1d marginal probs
-(bins, marginals1D) = plotP.calculate_1D_marginal_probs(P_samples = P, samples = lambda_emulate, lam_domain = lam_domain, nbins = [10, 10, 10])
+(bins, marginals1D) = plotP.calculate_1D_marginal_probs(input_samples,
+                                                        nbins = 40)
 # smooth 1d marginal probs (optional)
 marginals1D = plotP.smooth_marginals_1D(marginals1D, bins, sigma=0.1)
 # plot 2d marginal probs
-plotP.plot_1D_marginal_probs(marginals1D, bins, lam_domain, filename = "linearMap")
+plotP.plot_1D_marginal_probs(marginals1D, bins, input_samples, filename = "linearMap",
+                             file_extension = ".eps")
 
 
 
