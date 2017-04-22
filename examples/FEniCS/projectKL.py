@@ -1,12 +1,11 @@
 from dolfin import * 
 import numpy as np
+from meshDS import*
+# initialize petsc
 import petsc4py
 from petsc4py import PETSc
 from slepc4py import SLEPc
-from meshDS import*
-# initialize petsc
 petsc4py.init()
-petsc4py.PETSc.Sys.popErrorHandler()
 
 
 class projectKL(object):
@@ -23,10 +22,8 @@ class projectKL(object):
         self.flag = False
     def getCovMat(self, cov_expr):
         """TODO: Docstring for getCovMat.
-
         :cov_expr: Expression (dolfin) as a function of 
         :returns: covariance PETSC matrix cov_mat
-
         """
         # store the expression
         self.expr = cov_expr
@@ -39,7 +36,7 @@ class projectKL(object):
         cov_ij = np.empty((1),dtype=float) # scalar valued function is evaluated in this variable 
         xycor = np.empty((4),dtype=float) # the points to evalute the expression
 
-	print '---------------------------'
+        print '---------------------------'
         print '---------------------------'
         print ' Building Covariance Matrix'
         print '---------------------------'
@@ -70,7 +67,7 @@ class projectKL(object):
                         cov_expr.eval(cov_ij,xycor)
                         if cov_ij[0] > 0:
                             temp_cov_ij += (1.0/3)*(1.0/3)*cov_ij[0]*self.c_volume_array[elem_i]* \
-                            self.c_volume_array[elem_j]
+                                self.c_volume_array[elem_j]
                             cov_mat.setValue(node_i,node_j,temp_cov_ij)
                             cov_mat.setValue(node_j,node_i,temp_cov_ij)
         cov_mat.assemblyBegin()
@@ -80,17 +77,14 @@ class projectKL(object):
         print ' Finished Covariance Matrix'
         print '---------------------------'
         print '---------------------------'
-        
         return cov_mat
 
     def _getBMat(self):
         """TODO: Docstring for getBmat. We are solving for CX = BX where C is the covariance matrix
         and B is just a mass matrix. Here we assemble B. This is a private function. DONT call this 
         unless debuging.
-
         :returns: PETScMatrix B 
         """
-
         # B matrix is just a mass matrix, can be easily assembled through fenics
         # however, the ordering in fenics is not the mesh ordering. so we build a temp matrix
         # then use the vertex to dof map to get the right ordering interms of our mesh nodes
@@ -122,37 +116,31 @@ class projectKL(object):
                     B.setValue(node_i,node_j,B_ij_nodes)
                     B.setValue(node_j,node_i,B_ij_nodes)
 	
-	B.assemblyBegin()
-	B.assemblyEnd()
-	print '---------------------------'
-	print '---------------------------'
-	print ' Finished Mass Matrix '
-	print '---------------------------'
-	print '---------------------------'
+        B.assemblyBegin()
+        B.assemblyEnd()
+        print '---------------------------'
+        print '---------------------------'
+        print ' Finished Mass Matrix '
+        print '---------------------------'
+        print '---------------------------'
         return B
 
     def projectCovToMesh(self,num_kl,cov_expr):
         """TODO: Docstring for projectCovToMesh. Solves CX = BX where C is the covariance matrix
         :num_kl : number of kl exapansion terms needed 
         :returns: TODO
-
         """
         # turn the flag to true
         self.flag = True
         # get C,B matrices
-        C = self.getCovMat(cov_expr)
-        B = self._getBMat()
+        C = PETScMatrix(self.getCovMat(cov_expr))
+        B = PETScMatrix(self._getBMat())
         # Solve the generalized eigenvalue problem
-        eigensolver = SLEPc.EPS()
-        eigensolver.create()
-        eigensolver.setOperators(C, B)
-        eigensolver.setDimensions(num_kl)
-        eigensolver.setProblemType(SLEPc.EPS.ProblemType.GHEP)
-        eigensolver.setFromOptions()
-        eigensolver.solve()
+        eigensolver = SLEPcEigenSolver(C,B)
+        eigensolver.solve(num_kl)
         # Get the number of eigen values that converged.
-        #nconv = eigensolver.get_number_converged()
-	
+        nconv = eigensolver.get_number_converged()
+
         # Get N eigenpairs where N is the number of KL expansion and check if N < nconv otherwise you had
         # really bad matrix
 
@@ -162,21 +150,13 @@ class projectKL(object):
 
         # store the eigenvalues and eigen functions
         V = FunctionSpace(self._mesh, "CG", 1)
-        x_real = PETSc.Vec().create()
-        x_real.setSizes(self.domain.getNodes())
-        x_real.setUp()
-        x_real.setValues(range(0,self.domain.getNodes()), np.zeros(self.domain.getNodes()))
-#        for i in range(0, self.domain.getNodes()):
-#            x_real.setValue(i, 0, 0.)
-
         for eigen_pairs in range(0,num_kl):
-            lam = eigensolver.getEigenpair(eigen_pairs, x_real)
+            lambda_r, lambda_c, x_real, x_complex = eigensolver.get_eigenpair(eigen_pairs)
             self.eigen_funcs[eigen_pairs] = Function(V)
             # use dof_to_vertex map to map values to the function space
-            self.eigen_funcs[eigen_pairs].vector()[:] = x_real.getValues(dof_to_vertex_map(V).astype('int32'))
+            self.eigen_funcs[eigen_pairs].vector()[:] = x_real[dof_to_vertex_map(V)]#*np.sqrt(lambda_r)
             # divide by norm to make the unit norm again
             self.eigen_funcs[eigen_pairs].vector()[:] = self.eigen_funcs[eigen_pairs].vector()[:] / \
-                        norm(self.eigen_funcs[eigen_pairs])
-            self.eigen_vals[eigen_pairs] = lam.real
-
-
+                norm(self.eigen_funcs[eigen_pairs])
+            self.eigen_vals[eigen_pairs] = lambda_r
+        

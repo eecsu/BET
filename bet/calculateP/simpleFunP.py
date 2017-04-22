@@ -679,7 +679,8 @@ def uniform_partition_normal_distribution(data_set, Q_ref, std, M,
     if isinstance(data_set, samp.discretization):
         data_set._output_probability_set = s_set
     return s_set
-
+  
+    
 def user_partition_user_distribution(data_set, data_partition_set,
                                           data_distribution_set):
     r"""
