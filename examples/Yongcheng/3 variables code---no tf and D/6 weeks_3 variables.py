@@ -14,7 +14,7 @@ from myModel_yongcheng import my_model
 sampler = bsam.sampler(my_model)
 input_samples = samp.sample_set(3)
 input_samples.set_domain(np.array([[7.79, 14.48],
-                                   [48.95, 170.22],
+                                   [50, 300],
                                    [0.73, 2.72]]))
                                    
 randomSampling = True
@@ -95,6 +95,7 @@ plotP.plot_2D_marginal_contours(marginals2D, bins, input_samples,
                              lam_ref = ref_param,
                              lam_refs = ref_params,
                              contour_num = 10,
+                             contour_font_size = 20,
                              filename = "Deflection",
                              file_extension = ".jpg")
 

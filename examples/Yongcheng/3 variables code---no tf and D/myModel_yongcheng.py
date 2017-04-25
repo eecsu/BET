@@ -16,5 +16,5 @@ def my_model(parameter_samples):
     D = 4.03
 #    T = np.random.normal(0.0065, 0.00033, 6000000)
 #    D = np.random.normal(4, 0.00033, 6000000)
-    A = B+30*0.55*6.6*C*0.0065*F/4.03 #elementwise operations
+    A = B+10*6.6*C*T*F/D #elementwise operations
     return A

@@ -439,11 +439,14 @@ def smooth_marginals_2D(marginals, bins, sigma=10.0):
 
 
 def plot_2D_marginal_contours(marginals, bins, sample_set,
-                              contour_num = 8, filename="file", 
+                              contour_num = 8, 
                               lam_ref=None, lam_refs = None,
                               plot_domain = None,
                               interactive=False,
-                              lambda_label=None, file_extension=".png"):
+                              lambda_label=None, 
+                              contour_font_size = 20,
+                              filename="file", 
+                              file_extension=".png"):
         
     """
     This makes plots of every pair of marginals (or joint in 2d case) of
@@ -522,7 +525,8 @@ def plot_2D_marginal_contours(marginals, bins, sample_set,
                 label2 = lambda_label[j]
             ax.set_xlabel(label1, fontsize=30) 
             ax.set_ylabel(label2, fontsize=30)
-            ax.tick_params(axis='both', which='major', labelsize=20)
+            ax.tick_params(axis='both', which='major', 
+                           labelsize=contour_font_size)
             plt.clabel(quadmesh, fontsize=24, inline=1, style='sci')
             
 #            label_cbar = r'$\rho_{\lambda_{' + str(i+1) + '}, ' 
