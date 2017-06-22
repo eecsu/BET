@@ -214,13 +214,17 @@ def plot_1D_marginal_probs(marginals, bins, sample_set,
             ax.plot(x_range, marginals[i]/(bins[i][1]-bins[i][0]))
             ax.set_ylim([0, 1.05*np.max(marginals[i]/(bins[i][1]-bins[i][0]))])
             if lam_ref is not None:
-                ax.plot(lam_ref[i], 0.0, 'ko', markersize=10)
+                ax.plot(lam_ref[i], 0.02*1.05*np.max(marginals[i]/(bins[i][1]-bins[i][0])), 'ko', markersize=15)
             if lambda_label is None:
                 label1 = r'$\lambda_{' + str(i+1) + '}$'
             else:
                 label1 = lambda_label[i]
-            ax.set_xlabel(label1) 
-            ax.set_ylabel(r'$\rho$')
+            #ax.set_xlabel(label1) 
+            #ax.set_ylabel(r'$\rho$')
+            ax.set_xlabel(label1, fontsize=30) 
+            ax.set_ylabel(r'PDF', fontsize=30)
+            ax.tick_params(axis='both', which='major', 
+                           labelsize=20)
             fig.savefig(filename + "_1D_" + str(i) + file_extension,
                     transparent=True) 
             if interactive:
@@ -526,8 +530,9 @@ def plot_2D_marginal_contours(marginals, bins, sample_set,
             ax.set_xlabel(label1, fontsize=30) 
             ax.set_ylabel(label2, fontsize=30)
             ax.tick_params(axis='both', which='major', 
-                           labelsize=contour_font_size)
-            plt.clabel(quadmesh, fontsize=24, inline=1, style='sci')
+                           labelsize=20)
+            plt.clabel(quadmesh, fontsize=contour_font_size, 
+                       inline=1, style='sci')
             
 #            label_cbar = r'$\rho_{\lambda_{' + str(i+1) + '}, ' 
 #            label_cbar += r'\lambda_{' + str(j+1) + '}' + '}$ (Lebesgue)'

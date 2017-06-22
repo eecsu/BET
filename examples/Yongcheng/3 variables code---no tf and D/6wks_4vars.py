@@ -79,6 +79,7 @@ ref_params = np.array([[10.82, 140.37, 1.678, 1.5],
                        [12.8, 105.05, 1.736, 1.5],
                        [11.25, 83.79, 2.209, 1.5]])
 
+param_names = [r'$f_c^\prime$', r'$E_f$', r'$\epsilon_{fu}$', r'$t_f$', r'$D$']
 # calculate 2d marginal probs
 (bins, marginals2D) = plotP.calculate_2D_marginal_probs(input_samples,
                                                         nbins = 50)
@@ -96,8 +97,9 @@ marginals2D = plotP.smooth_marginals_2D(marginals2D, bins,
 plotP.plot_2D_marginal_contours(marginals2D, bins, input_samples, 
                              lam_ref = ref_param,
                              lam_refs = ref_params,
+                             lambda_label = param_names,
                              contour_num = 10,
-                             contour_font_size = 20,
+                             contour_font_size = 15,
                              filename = "Deflection",
                              file_extension = ".jpg")
 
@@ -116,6 +118,7 @@ marginals1D = plotP.smooth_marginals_1D(marginals1D, bins,
 # plot 1d marginal probs
 plotP.plot_1D_marginal_probs(marginals1D, bins, input_samples, 
                              lam_ref = ref_param,
+                             lambda_label = param_names,
                              filename = "Deflection",
                              file_extension = ".jpg")
 
